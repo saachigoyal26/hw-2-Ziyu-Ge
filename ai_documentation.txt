@@ -1,0 +1,48 @@
+you may find the following error when running the notebook as is (even when running through the binder link on the LIGO repo!)
+
+image.png
+This is because the notebook code was written for an older version of the scipy package; the modules of the scipy package have since been shuffled around, and thus the filepaths to the modules with the blackman and tukey functions have changed. We ask that you do some digging in Google, in the scipy documentation, etc. to find where the blackman and tukey functions have been moved to, and to replace the signal.blackman(...) and signal.tukey(...) calls with ones that accurately reflect the module they have been moved to. Run the code to ensure your fix no longer throws errors.
+
+-----------------------------------------------------------------------
+Yep—this is just an API move in SciPy.
+
+What changed
+	•	Older code used:
+scipy.signal.tukey(...) and scipy.signal.blackman(...)
+	•	In modern SciPy (incl. 1.13), window functions live in scipy.signal.windows.
+
+Two clean fixes (pick one)
+
+A) Keep your existing import scipy.signal as signal
+
+Just change the calls:
+
+# old (breaks):
+# dwindow = signal.tukey(template.size, alpha=1./8)
+# dwindow = signal.blackman(template.size)
+
+# new (works on SciPy ≥ 1.2):
+dwindow = signal.windows.tukey(template.size, alpha=1./8)
+# fallback if Tukey not present (rare on very old SciPy):
+# dwindow = signal.windows.blackman(template.size)
+
+B) Import the functions directly
+
+Add near the top of the notebook:
+
+from scipy.signal.windows import tukey, blackman
+
+Then use:
+
+dwindow = tukey(template.size, alpha=1./8)
+# or
+dwindow = blackman(template.size)
+
+Optional: backward-compatible import (if you want it to also run on very old SciPy)
+
+try:
+    from scipy.signal.windows import tukey, blackman
+except ImportError:  # super old SciPy
+    from scipy.signal import tukey, blackman  # legacy location
+
+After the change, re-run the cell—those AttributeError: module 'scipy.signal' has no attribute 'tukey/blackman' messages will be gone.
